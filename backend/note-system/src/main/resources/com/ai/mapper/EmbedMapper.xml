@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org//dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.EmbedMapper">
+    <insert id="insert" parameterType="com.ai.dto.EmbedDTO"
+            useGeneratedKeys="true" keyProperty="embedId" keyColumn="embedId">
+        INSERT INTO document_embed
+        (doc_id, embed_type, note_id, embed_data, position, created_at)
+        VALUES
+        (#{docId}, #{embedType}, #{noteId}, #{embedData}, #{position}, #{createdAt})
+    </insert>
+
+    <select id="getEmbedById" resultType="com.ai.dto.EmbedDTO">
+        select embed_id, doc_id, embed_type, note_id, embed_data, position, created_at
+        from document_embed
+        where embed_id = #{embedId}
+    </select>
+
+    <delete id="deleteEmbed">
+        delete from document_embed
+        where doc_id = #{docId}
+          and embed_id = #{embedId}
+    </delete>
+
+    <select id="getEmbeds" resultType="com.ai.dto.EmbedDTO">
+        select embed_id, doc_id, embed_type, note_id, embed_data, position, created_at
+        from document_embed
+        where doc_id = #{docId}
+    </select>
+</mapper>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.RecommendMapper">
+
+    <!-- 查询热门笔记 -->
+    <select id="selectHotNotes" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            d.id AS id,
+            d.title AS title,
+            d.type AS type,
+            d.view_count AS viewCount,
+            d.like_count AS likeCount,
+            kb.name AS kbName
+        FROM document d
+            LEFT JOIN knowledge_base kb ON d.kb_id = kb.id
+        WHERE d.is_public = 1  <!-- 只推荐公开内容 -->
+        ORDER BY d.view_count DESC
+        LIMIT #{limit}
+    </select>
+
+
+    <!-- 查询热门知识库（按总浏览量排序） -->
+    <select id="selectHotKbs" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb.id AS id,
+            kb.name AS name,
+            COUNT(d.id) AS docCount,
+            COALESCE(SUM(d.view_count), 0) AS totalViews,
+            u.name AS creatorName
+        FROM knowledge_base kb
+                 LEFT JOIN user u ON kb.creator_id = u.id
+                 LEFT JOIN document d ON kb.id = d.kb_id AND d.deleted_at IS NULL
+        WHERE kb.is_public = 1 AND kb.deleted = 0
+        GROUP BY kb.id, kb.name, u.name
+        ORDER BY totalViews DESC
+            LIMIT #{limit}
+    </select>
+
+</mapper>

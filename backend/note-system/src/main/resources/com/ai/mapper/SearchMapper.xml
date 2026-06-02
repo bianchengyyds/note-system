@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org//dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.SearchMapper">
+
+    <!-- 搜索文档/表格/画板 -->
+    <select id="searchDocuments" resultType="com.ai.dto.SearchItemDTO">
+        SELECT
+        d.id,
+        d.type,
+        d.title,
+        d.content,
+        d.kb_id AS kbId,
+        kb.name AS kbName,
+        d.creator_id AS creatorId,
+        u.name AS creatorName,
+        d.updated_at AS updatedAt,
+        d.view_count AS viewCount,
+        NULL AS coverUrl
+        FROM document d
+        LEFT JOIN knowledge_base kb ON d.kb_id = kb.id
+        LEFT JOIN user u ON d.creator_id = u.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (d.title LIKE CONCAT('%', #{keyword}, '%') OR d.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="type != null and type != ''">
+                AND d.type = #{type}   <!-- 直接比较小写类型 -->
+            </if>
+            <if test="kbId != null">
+                AND d.kb_id = #{kbId}
+            </if>
+            <if test="creatorId != null">
+                AND d.creator_id = #{creatorId}
+            </if>
+            <if test="startTime != null">
+                AND d.updated_at >= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND d.updated_at &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY d.updated_at DESC
+    </select>
+
+    <!-- 搜索知识库 -->
+    <select id="searchKnowledgeBases" resultType="com.ai.dto.SearchItemDTO">
+        SELECT
+        kb.id,
+        'KNOWLEDGE_BASE' AS type,
+        kb.name AS title,
+        kb.description AS content,
+        NULL AS kbId,
+        NULL AS kbName,
+        kb.creator_id AS creatorId,
+        u.name AS creatorName,
+        kb.updated_at AS updatedAt,
+        0 AS viewCount,
+        kb.cover_url AS coverUrl
+        FROM knowledge_base kb
+        LEFT JOIN user u ON kb.creator_id = u.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (kb.name LIKE CONCAT('%', #{keyword}, '%') OR kb.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="creatorId != null">
+                AND kb.creator_id = #{creatorId}
+            </if>
+            <if test="startTime != null">
+                AND kb.updated_at >= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND kb.updated_at &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY kb.updated_at DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.DashboardMapper">
+
+    <!-- 1. 查询最近浏览笔记 -->
+    <select id="selectRecentNotes" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            d.id AS id,
+            d.title AS title,
+            d.type AS type,
+            kb.name AS kbName,
+            MAX(bh.browse_time) AS lastViewTime
+        FROM browse_history bh
+                 LEFT JOIN document d ON bh.doc_id = d.id
+                 LEFT JOIN knowledge_base kb ON d.kb_id = kb.id AND d.deleted_at IS NULL
+        WHERE bh.user_id = #{userId}
+        GROUP BY d.id, d.title, d.type, kb.name
+        ORDER BY lastViewTime DESC
+            LIMIT 10
+    </select>
+
+    <!-- 2. 查询我的知识库 (假设表名为 knowledge_base) -->
+    <select id="selectMyKbs" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb.id,
+            kb.name,
+            kb.description,
+            COUNT(d.id) AS docCount
+        FROM knowledge_base kb
+                 LEFT JOIN document d ON kb.id = d.kb_id
+        WHERE kb.creator_id = #{userId} AND d.deleted_at IS NULL
+        GROUP BY kb.id, kb.name, kb.description
+    </select>
+
+    <!-- 3. 查询推荐知识库 -->
+    <select id="selectRecommendedKbs" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb.id,
+            kb.name,
+            kb.description,
+            u.name AS creatorName
+        FROM knowledge_base kb
+                 LEFT JOIN user u ON kb.creator_id = u.id
+        WHERE kb.is_public = 1 AND kb.deleted = 0
+        ORDER BY kb.created_at DESC
+            LIMIT 10
+    </select>
+
+</mapper>

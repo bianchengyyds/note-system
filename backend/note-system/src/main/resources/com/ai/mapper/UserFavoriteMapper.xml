@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.UserFavoriteMapper">
+    <select id="selectByUserAndTarget" resultType="com.ai.dto.UserFavorite">
+        SELECT * FROM user_favorite
+        WHERE user_id = #{userId}
+          AND doc_id = #{targetId}
+    </select>
+
+    <insert id="insert" parameterType="com.ai.dto.UserFavorite"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO user_favorite
+            (user_id, doc_id, created_at)
+        VALUES
+            (#{userId}, #{targetId}, #{createdAt})
+    </insert>
+
+    <delete id="deleteByUserAndTarget">
+        DELETE FROM user_favorite
+        WHERE user_id = #{userId}
+          AND doc_id = #{targetId}
+    </delete>
+
+    <select id="selectFavoritesByUserId" resultType="com.ai.dto.UserFavoriteDTO">
+        SELECT
+            d.id AS noteId,
+            d.title AS title,
+            d.type AS type,
+            <!-- 截取前100字作为预览片段 -->
+            LEFT(d.content, 100) AS content,
+            k.name AS kbName,
+            uf.created_at AS favoritedAt
+        FROM user_favorite uf
+            <!-- 关联主表 document -->
+            LEFT JOIN document d ON uf.doc_id = d.id
+            <!-- 关联知识库表 -->
+            LEFT JOIN knowledge_base k ON d.kb_id = k.id
+        WHERE uf.user_id = #{userId}
+        ORDER BY uf.created_at DESC   <!-- 按收藏时间倒序 -->
+    </select>
+</mapper>

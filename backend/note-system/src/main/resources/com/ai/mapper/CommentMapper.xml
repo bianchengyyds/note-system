@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.CommentMapper">
+    <insert id="insert" parameterType="com.ai.dto.CommentDTO" keyProperty="id" useGeneratedKeys="true">
+        insert into comment
+            (content, note_id, parent_comment_id, user_id, like_count, created_at)
+        values
+            (#{content}, #{noteId}, #{parentCommentId}, #{userId}, #{likeCount}, #{createdAt})
+    </insert>
+
+    <select id="selectById" resultType="com.ai.dto.CommentDTO">
+        select * from comment where id = #{commentId};
+    </select>
+
+
+
+    <update id="incrementLikeCount">
+        update comment set like_count = like_count + 1 where id = #{targetId};
+    </update>
+
+    <update id="decrementLikeCount">
+        update comment set like_count = like_count - 1 where id = #{targetId};
+    </update>
+
+
+    <select id="selectAllCommentsByNoteId" resultType="com.ai.dto.CommentDTO">
+        SELECT
+            c.id,
+            c.user_id AS userId,
+            u.name AS userName,
+            u.avatar AS userAvatar,
+            c.parent_comment_id AS parentCommentId,
+            c.content,
+            c.like_count AS likeCount,
+            c.created_at AS createdAt
+        FROM comment c
+                 LEFT JOIN user u ON c.user_id = u.id
+        WHERE c.note_id = #{noteId}
+        ORDER BY c.created_at ASC
+    </select>
+</mapper>

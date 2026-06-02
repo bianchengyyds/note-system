@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.KBMapper">
+    <!--  创建知识库  -->
+    <insert id="addKB" useGeneratedKeys="true" keyProperty="id">
+        insert into knowledge_base(name, description, cover_url, creator_id, is_public, created_at)
+        values (#{name}, #{description}, #{coverUrl}, #{creatorId}, #{isPublic}, #{createdAt})
+    </insert>
+
+    <!--  获取知识库列表（含笔记数量）  -->
+    <select id="getKBListById" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb.id,
+            kb.name,
+            kb.description,
+            kb.cover_url AS coverUrl,
+            kb.creator_id AS creatorId,
+            kb.is_public AS isPublic,
+            kb.created_at AS createdAt,
+            COALESCE(doc.cnt, 0) AS docCount
+        FROM knowledge_base kb
+        LEFT JOIN (
+            SELECT kb_id, COUNT(*) AS cnt
+            FROM document
+            WHERE deleted_at IS NULL
+              AND id NOT IN (SELECT note_id FROM document_embed WHERE note_id IS NOT NULL)
+            GROUP BY kb_id
+        ) doc ON kb.id = doc.kb_id
+        WHERE kb.creator_id = #{creatorId} AND kb.deleted = 0
+        ORDER BY kb.created_at DESC
+    </select>
+
+
+
+    <!--  获取知识库详情  -->
+    <!-- 1. 查询知识库基础信息 -->
+    <select id="getKBDetailById" resultType="com.ai.dto.KBDTO">
+        SELECT id,
+               name,
+               description,
+               cover_url    AS coverUrl,
+               creator_id   AS creatorId,
+               is_public    AS isPublic,
+               created_at   AS createdAt
+        FROM knowledge_base
+        WHERE id = #{kbId}
+          AND deleted = 0
+    </select>
+
+    <!-- 2. 查询知识库成员 -->
+    <select id="getMembersByKBId" resultType="com.ai.dto.KBMemberDTO">
+        SELECT km.id         AS id,
+               km.kb_id      AS kbId,
+               km.user_id    AS userId,
+               u.name        AS name,
+               km.role       AS role,
+               km.joined_at  AS joinedAt,
+               km.deleted    AS deleted
+        FROM kb_member km
+                 INNER JOIN `user` u ON km.user_id = u.id
+        WHERE km.kb_id = #{kbId} AND km.deleted = 0
+    </select>
+
+    <!-- 3. 查询文档（构建树） -->
+    <select id="getDocumentsByKBId" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            d.id,
+            d.title,
+            CAST(d.content AS CHAR) AS content,
+            d.type,
+            d.parent_doc_id AS parentDocId,
+            d.kb_id AS kbId,
+            d.creator_id AS creatorId,
+            d.last_editor_id AS lastEditorId,
+            d.created_at AS createdAt,
+            d.updated_at AS updatedAt
+        FROM document d
+        WHERE d.kb_id = #{kbId}
+          AND d.deleted_at IS NULL
+          AND d.id NOT IN (SELECT note_id FROM document_embed WHERE note_id IS NOT NULL)
+        ORDER BY d.parent_doc_id, d.id
+    </select>
+
+
+
+    <!--  更新知识库  -->
+    <update id="updateKB">
+        UPDATE knowledge_base
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="coverUrl != null">cover_url = #{coverUrl},</if>
+            <if test="isPublic != null">is_public = #{isPublic},</if>
+            updated_at = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{id}
+    </update>
+    <!-- 查询用户在知识库的角色 -->
+    <select id="getUserRoleInKB" resultType="java.lang.String">
+        SELECT role
+        FROM kb_member
+        WHERE kb_id = #{kbId} AND user_id = #{userId}
+            LIMIT 1
+    </select>
+
+    <!--  软删除知识库  -->
+    <update id="updateDeleted">
+        UPDATE knowledge_base
+        SET deleted = #{deleted}
+        WHERE id = #{kbId}
+    </update>
+
+    <!--  彻底删除知识库  -->
+    <delete id="deleteKBForce">
+        DELETE FROM knowledge_base WHERE id = #{kbId};
+    </delete>
+
+    <!-- 查询所有状态的知识库（包含已删除） -->
+    <select id="getKBByIdIncludeDeleted" resultType="com.ai.dto.KBDTO">
+        SELECT
+        id,
+        name,
+        description,
+        cover_url AS coverUrl,
+        creator_id AS creatorId,
+        is_public AS isPublic,
+        created_at AS createdAt,
+        deleted  <!-- 用于判断是否已软删除 -->
+        FROM knowledge_base
+        WHERE id = #{kbId}
+    </select>
+
+    <!-- 获取回收站中的知识库列表 -->
+    <select id="selectRecycleByUserId" resultType="com.ai.dto.KBDTO">
+        SELECT *
+        FROM knowledge_base
+        WHERE creator_id = #{userId} AND deleted = 1
+        ORDER BY deleted DESC
+    </select>
+
+    <!-- 获取用户参与协作的知识库列表（不包括自己创建的） -->
+    <select id="getCollaborationKBList" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb.id,
+            kb.name,
+            kb.description,
+            kb.cover_url AS coverUrl,
+            kb.creator_id AS creatorId,
+            kb.is_public AS isPublic,
+            kb.created_at AS createdAt,
+            km.role,
+            COALESCE(doc.cnt, 0) AS docCount
+        FROM kb_member km
+        INNER JOIN knowledge_base kb ON km.kb_id = kb.id
+        LEFT JOIN (
+            SELECT kb_id, COUNT(*) AS cnt
+            FROM document
+            WHERE deleted_at IS NULL
+              AND id NOT IN (SELECT note_id FROM document_embed WHERE note_id IS NOT NULL)
+            GROUP BY kb_id
+        ) doc ON kb.id = doc.kb_id
+        WHERE km.user_id = #{userId}
+          AND km.deleted = 0
+          AND kb.deleted = 0
+          AND kb.creator_id != #{userId}
+        ORDER BY kb.created_at DESC
+    </select>
+
+</mapper>

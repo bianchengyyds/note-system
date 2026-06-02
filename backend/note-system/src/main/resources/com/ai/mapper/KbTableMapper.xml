@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org//dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.KbTableMapper">
+
+    <resultMap id="BaseResultMap" type="com.ai.dto.KbTable">
+        <id column="id" property="id"/>
+        <result column="kb_id" property="kbId"/>
+        <result column="name" property="name"/>
+        <result column="doc_id" property="docId"/>
+        <result column="table_data" property="tableData"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- 插入表格 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_table
+        (kb_id, name, doc_id, table_data, create_time)
+        VALUES
+        (#{kbId}, #{name}, #{docId}, #{tableData}, #{createTime})
+    </insert>
+
+    <!-- 根据文档ID查询表格 -->
+    <select id="selectByDocId" resultType="com.ai.dto.KbTable">
+        SELECT id, doc_id, kb_id, table_data, create_time
+        FROM kb_table
+        WHERE doc_id = #{docId}
+    </select>
+
+    <!-- 根据文档ID更新表格 -->
+    <update id="updateByDocId">
+        UPDATE kb_table
+        SET table_data = #{tableData}, name = #{name}, kb_id = #{kbId}
+        WHERE doc_id = #{docId}
+    </update>
+
+    <update id="updateKbIdByDocId">
+        UPDATE kb_table
+        SET kb_id = #{kbId}
+        WHERE doc_id = #{docId}
+    </update>
+
+    <delete id="deleteByDocId">
+        DELETE FROM kb_table WHERE doc_id = #{docId}
+    </delete>
+</mapper>

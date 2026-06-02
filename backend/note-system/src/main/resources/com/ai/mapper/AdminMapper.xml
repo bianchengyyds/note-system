@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ai.mapper.AdminMapper">
+
+    <!-- 数据统计概览（实时聚合） -->
+    <select id="getOverview" resultType="com.ai.dto.AdminOverviewDTO">
+        SELECT
+                (SELECT COUNT(*) FROM `user`) AS totalUsers,
+
+                (SELECT COUNT(*) FROM `user`
+                 WHERE DATE(created_at) = CURDATE()
+            ) AS newUsersToday,
+
+            (SELECT COUNT(DISTINCT user_id) FROM operation_log
+        WHERE DATE(created_at) = CURDATE()
+            ) AS activeUsersToday,
+
+            (SELECT COUNT(*) FROM document
+        WHERE deleted_at IS NULL
+            ) AS totalNotes,
+
+            (SELECT COUNT(*) FROM knowledge_base
+        WHERE deleted = 0
+            ) AS totalKbs,
+
+            (SELECT COUNT(*) FROM comment
+            ) AS totalComments
+    </select>
+
+    <!-- 本年度每月统计（聚合 daily_stat，按月分组） -->
+    <select id="selectYearlyStats" resultType="com.ai.dto.MonthlyStatDTO">
+        SELECT
+        DATE_FORMAT(stat_date, '%Y-%m') AS statMonth,
+        MAX(total_users)          AS totalUsers,
+        SUM(new_users)            AS newUsers,
+        MAX(active_users)         AS activeUsers,   <!-- 月最高日活，也可改为 AVG(active_users) -->
+        MAX(total_docs)           AS totalNotes,
+        SUM(new_docs)             AS newNotes,
+        MAX(total_kbs)            AS totalKbs,
+        SUM(new_kbs)              AS newKbs,
+        MAX(total_comments)       AS totalComments
+        FROM daily_stat
+        WHERE YEAR(stat_date) = #{year}
+        GROUP BY statMonth
+        ORDER BY statMonth
+    </select>
+
+    <!-- 指定月汇总（聚合某月的全部 daily_stat 记录，得到一个汇总对象） -->
+    <select id="selectMonthlyStats" resultType="com.ai.dto.MonthlyStatDTO">
+        SELECT
+            CONCAT(#{year}, '-', LPAD(#{month}, 2, '0')) AS statMonth,
+            COALESCE(MAX(total_users), 0)       AS totalUsers,
+            COALESCE(SUM(new_users), 0)         AS newUsers,
+            COALESCE(MAX(active_users), 0)      AS activeUsers,
+            COALESCE(MAX(total_docs), 0)        AS totalNotes,
+            COALESCE(SUM(new_docs), 0)          AS newNotes,
+            COALESCE(MAX(total_kbs), 0)         AS totalKbs,
+            COALESCE(SUM(new_kbs), 0)           AS newKbs,
+            COALESCE(MAX(total_comments), 0)    AS totalComments
+        FROM daily_stat
+        WHERE YEAR(stat_date) = #{year} AND MONTH(stat_date) = #{month}
+    </select>
+
+
+    <select id="selectNoteList" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            d.id,
+            d.title,
+            d.type,
+            d.content,
+            d.kb_id AS kbId,
+            kb.name AS kbName,
+            d.creator_id AS creatorId,
+            u.name AS creatorName,
+            d.audit_status AS auditStatus,
+            d.is_public AS isPublic,
+            CASE WHEN d.deleted_at IS NOT NULL THEN TRUE ELSE FALSE END AS deleted,
+            d.view_count AS viewCount,
+            d.like_count AS likeCount,
+            d.comment_count AS commentCount,
+            d.created_at AS createdAt,
+            d.updated_at AS updatedAt
+        FROM document d
+            LEFT JOIN knowledge_base kb ON d.kb_id = kb.id AND kb.deleted = 0
+            LEFT JOIN user u ON d.creator_id = u.id
+        <where>
+            AND d.deleted_at IS NULL
+            AND d.id NOT IN (SELECT note_id FROM document_embed)
+            <if test="keyword != null and keyword != ''">
+                AND d.title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="type != null and type != 'all'">
+                AND d.type = #{type}
+            </if>
+            <if test="auditStatus != null and auditStatus != 'all'">
+                AND d.audit_status = #{auditStatus}
+            </if>
+            <if test="kbId != null">
+                AND d.kb_id = #{kbId}
+            </if>
+            <if test="creatorId != null">
+                AND d.creator_id = #{creatorId}
+            </if>
+            <if test="startTime != null">
+                AND d.created_at >= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND d.created_at &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY d.created_at DESC
+    </select>
+
+    <select id="selectNoteDetail" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            d.id,
+            d.title,
+            d.content,
+            d.type,
+            d.kb_id AS kbId,
+            kb.name AS kbName,
+            d.parent_doc_id AS parentDocId,
+            d.creator_id AS creatorId,
+            uc.name AS creatorName,
+            d.last_editor_id AS lastEditorId,
+            ue.name AS lastEditorName,
+            d.version,
+            d.is_public AS isPublic,
+            CASE WHEN d.deleted_at IS NOT NULL THEN TRUE ELSE FALSE END AS deleted,
+            d.deleted_at AS deletedAt,
+            d.audit_status AS auditStatus,
+            d.view_count AS viewCount,
+            d.like_count AS likeCount,
+            d.comment_count AS commentCount,
+            d.created_at AS createdAt,
+            d.updated_at AS updatedAt
+        FROM document d
+                 LEFT JOIN knowledge_base kb ON d.kb_id = kb.id AND kb.deleted = 0
+                 LEFT JOIN user uc ON d.creator_id = uc.id
+                 LEFT JOIN user ue ON d.last_editor_id = ue.id
+        WHERE d.id = #{noteId}
+    </select>
+
+
+    <!-- 更新文档基础信息（仅更新标题、内容、版本、编辑者、更新时间） -->
+    <update id="updateDocument" parameterType="com.ai.dto.DocumentDTO">
+        UPDATE document
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            version = #{version},
+            last_editor_id = #{lastEditorId},
+            updated_at = #{updatedAt}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- ================= 表格扩展 ================= -->
+    <select id="selectKbTableByDocId" resultType="com.ai.dto.KbTable">
+        SELECT id, doc_id, kb_id, table_data
+        FROM kb_table
+        WHERE doc_id = #{docId}
+    </select>
+
+    <insert id="insertKbTable" parameterType="com.ai.dto.KbTable" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_table (doc_id, kb_id, table_data, create_time)
+        VALUES (#{docId}, #{kbId}, #{tableData}, NOW())
+    </insert>
+
+    <update id="updateKbTable" parameterType="com.ai.dto.KbTable">
+        UPDATE kb_table
+        SET table_data = #{tableData}, name = #{name}
+        WHERE id = #{id}
+    </update>
+
+    <!-- ================= 画板扩展 ================= -->
+    <select id="selectKbBoardByDocId" resultType="com.ai.dto.KbBoard">
+        SELECT id, doc_id, kb_id, board_data
+        FROM kb_board
+        WHERE doc_id = #{docId}
+    </select>
+
+    <insert id="insertKbBoard" parameterType="com.ai.dto.KbBoard" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_board (doc_id, kb_id, board_data, create_time)
+        VALUES (#{docId}, #{kbId}, #{boardData}, NOW())
+    </insert>
+
+    <update id="updateKbBoard" parameterType="com.ai.dto.KbBoard">
+        UPDATE kb_board
+        SET board_data = #{boardData}, name = #{name}
+        WHERE id = #{id}
+    </update>
+
+    <!-- ================= 思维导图扩展 ================= -->
+    <select id="selectKbMindByDocId" resultType="com.ai.dto.KbMind">
+        SELECT id, doc_id, kb_id, mind_data AS mindData
+        FROM kb_mind
+        WHERE doc_id = #{docId}
+    </select>
+
+    <insert id="insertKbMind" parameterType="com.ai.dto.KbMind" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_mind (doc_id, kb_id, mind_data, created_at)
+        VALUES (#{docId}, #{kbId}, #{mindData}, NOW())
+    </insert>
+
+    <update id="updateKbMind" parameterType="com.ai.dto.KbMind">
+        UPDATE kb_mind
+        SET mind_data = #{mindData}
+        WHERE id = #{id}
+    </update>
+
+
+    <update id="updateAuditStatus">
+        UPDATE document
+        SET audit_status = #{auditStatus}
+        WHERE id = #{noteId}
+    </update>
+
+
+    <select id="selectKbList" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb.id,
+            kb.name,
+            kb.description,
+            kb.cover_url AS coverUrl,
+            kb.is_public AS isPublic,
+            COALESCE(dc.doc_count, 0) AS docCount,
+            u.name AS creatorName,
+            kb.created_at AS createdAt
+        FROM knowledge_base kb
+            LEFT JOIN user u ON kb.creator_id = u.id
+            LEFT JOIN (
+            SELECT kb_id, COUNT(*) AS doc_count
+            FROM document
+            WHERE deleted_at IS NULL
+            GROUP BY kb_id
+            ) dc ON kb.id = dc.kb_id
+        WHERE kb.deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND kb.name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="isPublic != null">
+                AND kb.is_public = #{isPublic}
+            </if>
+            <if test="creatorId != null">
+                AND kb.creator_id = #{creatorId}
+            </if>
+        ORDER BY kb.created_at DESC
+    </select>
+
+
+
+    <!-- 知识库基本信息 -->
+    <select id="selectKbDetailBasic" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb.id,
+            kb.name,
+            kb.description,
+            kb.cover_url AS coverUrl,
+            kb.creator_id AS creatorId,
+            u.name AS creatorName,
+            kb.is_public AS isPublic,
+            kb.deleted AS deleted,
+            kb.created_at AS createdAt
+        FROM knowledge_base kb
+                 LEFT JOIN user u ON kb.creator_id = u.id
+        WHERE kb.id = #{kbId}
+    </select>
+
+    <!-- 成员列表 -->
+    <select id="selectKbMembers" resultType="com.ai.dto.KBDTO">
+        SELECT
+            kb_m.user_id AS userId,
+            u.name,
+            kb_m.role
+        FROM kb_member kb_m
+                 LEFT JOIN user u ON kb_m.user_id = u.id
+        WHERE kb_m.kb_id = #{kbId}
+          AND kb_m.deleted = 0   -- 成员列表中排除已移除的成员
+    </select>
+
+    <!-- 扁平笔记列表（未删除的） -->
+    <select id="selectKbNotesFlat" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            d.id,
+            d.title,
+            d.type,
+            d.parent_doc_id AS parentDocId
+        FROM document d
+        WHERE d.kb_id = #{kbId}
+          AND d.deleted_at IS NULL
+        ORDER BY d.parent_doc_id, d.created_at
+    </select>
+
+
+    <!-- 物理删除知识库 -->
+    <delete id="deleteKb">
+        DELETE FROM knowledge_base WHERE id = #{kbId}
+    </delete>
+</mapper>

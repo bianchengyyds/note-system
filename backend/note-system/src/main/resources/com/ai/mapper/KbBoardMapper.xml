@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org//dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.KbBoardMapper">
+
+    <resultMap id="BaseResultMap" type="com.ai.dto.KbBoard">
+        <id column="id" property="id"/>
+        <result column="kb_id" property="kbId"/>
+        <result column="name" property="name"/>
+        <result column="doc_id" property="docId"/>
+        <result column="board_data" property="boardData"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- 插入看板 -->
+    <insert id="insert">
+        INSERT INTO kb_board
+        (kb_id, name, doc_id, board_data, create_time)
+        VALUES
+        (#{kbId}, #{name}, #{docId}, #{boardData}, #{createTime})
+    </insert>
+
+    <!-- 根据文档ID查询看板 -->
+    <select id="selectByDocId" resultType="com.ai.dto.KbBoard">
+        SELECT id, doc_id, kb_id, board_data, create_time
+        FROM kb_board
+        WHERE doc_id = #{docId}
+    </select>
+
+    <!-- 根据文档ID更新看板 -->
+    <update id="updateByDocId">
+        UPDATE kb_board
+        SET board_data = #{boardData}, name = #{name}, kb_id = #{kbId}
+        WHERE doc_id = #{docId}
+    </update>
+
+    <update id="updateKbIdByDocId">
+        UPDATE kb_board
+        SET kb_id = #{kbId}
+        WHERE doc_id = #{docId}
+    </update>
+
+    <delete id="deleteByDocId">
+        DELETE FROM kb_board WHERE doc_id = #{docId}
+    </delete>
+</mapper>

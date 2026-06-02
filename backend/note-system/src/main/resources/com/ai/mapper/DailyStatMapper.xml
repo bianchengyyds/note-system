@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.DailyStatMapper">
+
+    <!-- 实时聚合当天数据 -->
+    <select id="calcDailyStat" resultType="com.ai.dto.DailyStatDTO">
+        SELECT
+        #{statDate} AS statDate,
+
+        (SELECT COUNT(*) FROM `user`
+        WHERE DATE(created_at) &lt;= #{statDate}
+        ) AS totalUsers,
+
+        (SELECT COUNT(*) FROM `user`
+        WHERE DATE(created_at) = #{statDate}
+        ) AS newUsers,
+
+        (SELECT COUNT(DISTINCT user_id) FROM operation_log
+        WHERE DATE(created_at) = #{statDate}
+        ) AS activeUsers,
+
+        (SELECT COUNT(*) FROM document
+        WHERE DATE(created_at) &lt;= #{statDate} AND deleted_at IS NULL
+        ) AS totalNotes,
+
+        (SELECT COUNT(*) FROM document
+        WHERE DATE(created_at) = #{statDate} AND deleted_at IS NULL
+        ) AS newNotes,
+
+        (SELECT COUNT(*) FROM knowledge_base
+        WHERE DATE(created_at) &lt;= #{statDate} AND deleted = 0
+        ) AS totalKbs,
+
+        (SELECT COUNT(*) FROM knowledge_base
+        WHERE DATE(created_at) = #{statDate} AND deleted = 0
+        ) AS newKbs,
+
+        (SELECT COUNT(*) FROM comment
+        WHERE DATE(created_at) &lt;= #{statDate}
+        ) AS totalComments
+    </select>
+
+    <!-- 插入或更新 daily_stat -->
+    <insert id="upsertDailyStat">
+        INSERT INTO daily_stat (
+        stat_date, total_users, new_users, active_users,
+        total_docs, new_docs, total_kbs, new_kbs, total_comments
+        ) VALUES (
+            #{statDate}, #{totalUsers}, #{newUsers}, #{activeUsers},
+            #{totalNotes}, #{newNotes}, #{totalKbs}, #{newKbs}, #{totalComments}
+        )
+        ON DUPLICATE KEY UPDATE
+        total_users    = VALUES(total_users),
+        new_users      = VALUES(new_users),
+        active_users   = VALUES(active_users),
+        total_docs     = VALUES(total_docs),
+        new_docs       = VALUES(new_docs),
+        total_kbs      = VALUES(total_kbs),
+        new_kbs        = VALUES(new_kbs),
+        total_comments = VALUES(total_comments)
+    </insert>
+</mapper>

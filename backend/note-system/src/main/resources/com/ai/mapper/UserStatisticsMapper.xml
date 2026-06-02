@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ai.mapper.UserStatisticsMapper">
+
+    <!-- 获取个人统计信息 -->
+    <select id="getStatistics" resultType="com.ai.dto.UserStatisticsDTO">
+        SELECT
+            created_notes   AS createdNotes,
+            created_kbs     AS createdKbs,
+            total_views     AS totalViews,
+            total_likes     AS totalLikes,
+            received_comments AS receivedComments,
+            total_words     AS totalWords,
+            active_days     AS activeDays,
+            last_active_time AS lastActiveTime
+        FROM user_stat
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>

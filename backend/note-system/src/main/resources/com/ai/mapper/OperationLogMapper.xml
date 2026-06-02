@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.OperationLogMapper">
+    <insert id="insert" parameterType="com.ai.dto.OperationLog">
+        INSERT INTO operation_log (user_id, operation, target_type, target_id, ip, user_agent, created_at)
+        VALUES (#{userId}, #{operation}, #{targetType}, #{targetId}, #{ip}, #{userAgent}, #{createdAt})
+    </insert>
+
+    <select id="selectLogs" resultType="com.ai.dto.OperationLog">
+        SELECT
+        ol.id,
+        ol.user_id AS userId,
+        u.name AS userName,
+        ol.operation,
+        ol.target_type AS targetType,
+        ol.target_id AS targetId,
+        ol.ip,
+        ol.user_agent AS userAgent,
+        ol.created_at AS createdAt
+        FROM operation_log ol
+        LEFT JOIN user u ON ol.user_id = u.id
+        <where>
+            <if test="userId != null">
+                AND ol.user_id = #{userId}
+            </if>
+            <if test="userName != null and userName != ''">
+                AND u.name LIKE CONCAT('%', #{userName}, '%')
+            </if>
+            <if test="operation != null and operation != ''">
+                AND ol.operation LIKE CONCAT('%', #{operation}, '%')
+            </if>
+            <if test="startTime != null">
+                AND ol.created_at >= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND ol.created_at &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY ol.created_at DESC
+    </select>
+
+    <delete id="deleteByIds">
+        DELETE FROM operation_log
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

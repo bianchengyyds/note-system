@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ai.mapper.AdminUserMapper">
+    <!-- 查询用户列表（含笔记数、知识库数） -->
+    <select id="selectUserList" resultType="com.ai.dto.UserDTO">
+        SELECT
+            u.id,
+            u.name,
+            u.email,
+            u.phone,
+            u.gender,
+            u.role,
+            u.status,
+            u.created_at AS createdAt,
+            COALESCE(doc.cnt, 0) AS noteCount,
+            COALESCE(kb.cnt, 0) AS kbCount
+        FROM user u
+        LEFT JOIN (
+            SELECT creator_id, COUNT(*) AS cnt
+            FROM document
+            WHERE deleted_at IS NULL
+            GROUP BY creator_id
+        ) doc ON u.id = doc.creator_id
+        LEFT JOIN (
+            SELECT creator_id, COUNT(*) AS cnt
+            FROM knowledge_base
+            WHERE deleted = 0
+            GROUP BY creator_id
+        ) kb ON u.id = kb.creator_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (u.name LIKE CONCAT('%', #{keyword}, '%')
+                OR u.email LIKE CONCAT('%', #{keyword}, '%')
+                OR u.phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null and status != 'all'">
+                AND u.status = #{status}
+            </if>
+            <if test="role != null and role != 'all'">
+                AND u.role = #{role}
+            </if>
+        </where>
+        ORDER BY u.created_at DESC
+    </select>
+
+
+    <!-- 查询单个用户详情（同上，可单独使用） -->
+    <select id="selectUserDetail" resultType="com.ai.dto.UserDTO">
+        SELECT
+            u.id,
+            u.name,
+            u.email,
+            u.phone,
+            u.gender,
+            u.role,
+            u.status,
+            u.created_at AS createdAt,
+            COALESCE(doc.cnt, 0) AS noteCount,
+            COALESCE(kb.cnt, 0) AS kbCount
+        FROM user u
+        LEFT JOIN (
+            SELECT creator_id, COUNT(*) AS cnt
+            FROM document
+            WHERE deleted_at IS NULL
+            GROUP BY creator_id
+        ) doc ON u.id = doc.creator_id
+        LEFT JOIN (
+            SELECT creator_id, COUNT(*) AS cnt
+            FROM knowledge_base
+            WHERE deleted = 0
+            GROUP BY creator_id
+        ) kb ON u.id = kb.creator_id
+        WHERE u.id = #{userId}
+    </select>
+
+    <update id="updateUserByAdmin">
+        UPDATE user
+        <set>
+            <if test="req.name != null">name = #{req.name},</if>
+            <if test="req.email != null">email = #{req.email},</if>
+            <if test="req.phone != null">phone = #{req.phone},</if>
+            <if test="req.gender != null">gender = #{req.gender},</if>
+            <if test="req.role != null">role = #{req.role},</if>
+            <if test="req.status != null">status = #{req.status},</if>
+            <if test="req.avatar != null">avatar = #{req.avatar},</if>
+            <if test="req.bio != null">bio = #{req.bio},</if>
+        </set>
+        WHERE id = #{userId}
+    </update>
+
+    <!-- 统计用户的笔记数量 -->
+    <select id="countUserNotes" resultType="int">
+        SELECT COUNT(*) FROM document
+        WHERE creator_id = #{userId} AND deleted_at IS NULL
+    </select>
+
+    <!-- 统计用户的知识库数量 -->
+    <select id="countUserKnowledgeBases" resultType="int">
+        SELECT COUNT(*) FROM knowledge_base
+        WHERE creator_id = #{userId} AND deleted = 0
+    </select>
+
+    <!-- 物理删除用户 -->
+    <delete id="deleteUser">
+        DELETE FROM user WHERE id = #{userId}
+    </delete>
+
+    <!-- 更新用户密码 -->
+    <update id="updateUserPassword">
+        UPDATE user SET password = #{password} WHERE id = #{userId}
+    </update>
+</mapper>

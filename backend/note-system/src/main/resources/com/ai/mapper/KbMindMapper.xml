@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.KbMindMapper">
+
+    <!-- 结果映射（字段名需与数据库表严格一致） -->
+    <resultMap id="BaseResultMap" type="com.ai.dto.KbMind">
+        <id column="id" property="id"/>
+        <result column="kb_id" property="kbId"/>
+        <result column="doc_id" property="docId"/>
+        <result column="mind_data" property="mindData"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 插入思维导图，主键自动回填 -->
+    <insert id="insert" parameterType="com.ai.dto.KbMind"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_mind (kb_id, doc_id, mind_data, created_at, updated_at)
+        VALUES (#{kbId}, #{docId}, #{mindData}, NOW(), NOW())
+    </insert>
+
+    <select id="selectByDocId" resultType="com.ai.dto.KbMind">
+        SELECT id, doc_id, kb_id, mind_data, created_at, updated_at
+        FROM kb_mind
+        WHERE doc_id = #{docId}
+    </select>
+
+
+    <!-- 更新思维导图-->
+    <update id="updateByDocId">
+        UPDATE kb_mind
+        SET mind_data = #{mindData}, updated_at = NOW(), kb_id = #{kbId}
+        WHERE doc_id = #{docId}
+    </update>
+
+    <update id="updateKbIdByDocId">
+        UPDATE kb_mind
+        SET kb_id = #{kbId}
+        WHERE doc_id = #{docId}
+    </update>
+
+    <delete id="deleteByDocId">
+        DELETE FROM kb_mind WHERE doc_id = #{docId}
+    </delete>
+</mapper>

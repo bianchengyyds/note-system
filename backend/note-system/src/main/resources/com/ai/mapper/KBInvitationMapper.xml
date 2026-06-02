@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.KBInvitationMapper">
+
+    <!-- Result map -->
+    <resultMap id="KBInvitationResultMap" type="com.ai.dto.KBInvitationDTO">
+        <id property="id" column="id"/>
+        <result property="kbId" column="kb_id"/>
+        <result property="inviterId" column="inviter_id"/>
+        <result property="inviteeId" column="invitee_id"/>
+        <result property="role" column="role"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="expiredAt" column="expired_at"/>
+    </resultMap>
+
+    <!-- Insert new invitation -->
+    <insert id="insert" parameterType="com.ai.dto.KBInvitationDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO kb_invitation (kb_id, inviter_id, invitee_id, role, status, created_at, updated_at, expired_at)
+        VALUES (#{kbId}, #{inviterId}, #{inviteeId}, #{role}, #{status}, #{createdAt}, #{updatedAt}, #{expiredAt})
+    </insert>
+
+    <!-- Update existing invitation -->
+    <update id="update" parameterType="com.ai.dto.KBInvitationDTO">
+        UPDATE kb_invitation
+        <set>
+            <if test="role != null">role = #{role},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+            <if test="expiredAt != null">expired_at = #{expiredAt}</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- Get invitation by ID -->
+    <select id="getById" parameterType="java.lang.Long" resultMap="KBInvitationResultMap">
+        SELECT id, kb_id, inviter_id, invitee_id, role, status, created_at, updated_at, expired_at
+        FROM kb_invitation
+        WHERE id = #{id}
+    </select>
+
+    <!-- Get pending invitations for a specific user -->
+    <select id="getPendingInvitationsByInviteeId" parameterType="java.lang.Long" resultMap="KBInvitationResultMap">
+        SELECT id, kb_id, inviter_id, invitee_id, role, status, created_at, updated_at, expired_at
+        FROM kb_invitation
+        WHERE invitee_id = #{inviteeId} AND status = 'PENDING'
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- Get invitations by knowledge base ID -->
+    <select id="getByKbId" parameterType="java.lang.Long" resultMap="KBInvitationResultMap">
+        SELECT id, kb_id, inviter_id, invitee_id, role, status, created_at, updated_at, expired_at
+        FROM kb_invitation
+        WHERE kb_id = #{kbId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- Get invitation by knowledge base ID and invitee ID -->
+    <select id="getByKbIdAndInviteeId" resultMap="KBInvitationResultMap">
+        SELECT id, kb_id, inviter_id, invitee_id, role, status, created_at, updated_at, expired_at
+        FROM kb_invitation
+        WHERE kb_id = #{kbId} AND invitee_id = #{inviteeId}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- Get pending invitation for a user to join a knowledge base -->
+    <select id="getPendingInvitation" resultMap="KBInvitationResultMap">
+        SELECT id, kb_id, inviter_id, invitee_id, role, status, created_at, updated_at, expired_at
+        FROM kb_invitation
+        WHERE kb_id = #{kbId} AND invitee_id = #{inviteeId} AND status = 'PENDING'
+        LIMIT 1
+    </select>
+
+</mapper>

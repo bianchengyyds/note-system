@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org//dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.KbFileMapper">
+
+    <resultMap id="BaseResultMap" type="com.ai.dto.KbFile">
+        <id column="id" property="id"/>
+        <result column="kb_id" property="kbId"/>
+        <result column="file_name" property="fileName"/>
+        <result column="file_path" property="filePath"/>
+        <result column="file_type" property="fileType"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- 插入文件记录 -->
+    <insert id="insert">
+        INSERT INTO kb_file
+        (kb_id, file_name, file_path, file_type, file_size, create_time)
+        VALUES
+        (#{kbId}, #{fileName}, #{filePath}, #{fileType}, #{fileSize}, #{createTime})
+    </insert>
+
+</mapper>

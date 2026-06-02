@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.DocumentVersionMapper">
+
+    <insert id="insert" parameterType="com.ai.dto.DocumentVersionDTO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO document_version (doc_id, version, title, content, editor_id, created_at)
+        VALUES (#{docId}, #{version}, #{title}, #{content}, #{editorId}, NOW())
+    </insert>
+
+    <select id="selectByDocId" resultType="com.ai.dto.DocumentVersionDTO">
+        SELECT id, doc_id, version, title, content, editor_id, created_at
+        FROM document_version
+        WHERE doc_id = #{docId}
+        ORDER BY version DESC
+    </select>
+
+    <delete id="deleteByDocId">
+        DELETE FROM document_version WHERE doc_id = #{docId}
+    </delete>
+
+    <select id="listByDocId" resultType="com.ai.dto.DocumentVersionDTO">
+        SELECT dv.id, dv.version, dv.title, dv.content, dv.editor_id, u.name AS editor_name, dv.created_at
+        FROM document_version dv
+        LEFT JOIN user u ON dv.editor_id = u.id
+        WHERE dv.doc_id = #{docId}
+        ORDER BY dv.version DESC
+    </select>
+
+    <select id="selectByIdAndDocId" resultType="com.ai.dto.DocumentVersionDTO">
+        SELECT dv.id, dv.version, dv.title, dv.content, dv.editor_id, u.name AS editor_name, dv.created_at
+        FROM document_version dv
+        LEFT JOIN user u ON dv.editor_id = u.id
+        WHERE dv.id = #{versionId} AND dv.doc_id = #{docId}
+    </select>
+</mapper>

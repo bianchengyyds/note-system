@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.DocumentMapper">
+    <resultMap id="BaseResultMap" type="com.ai.dto.DocumentDTO">
+        <id column="id" property="id"/>
+        <result column="kb_id" property="kbId"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="type" property="type"/>
+        <result column="parent_doc_id" property="parentDocId"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="last_editor_id" property="lastEditorId"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!-- 插入文档 -->
+    <insert id="insertKB" parameterType="com.ai.dto.DocumentDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO document
+        (kb_id, title, content, type, parent_doc_id, creator_id, last_editor_id, created_at)
+        VALUES
+            (#{kbId}, #{title}, #{content}, #{type}, #{parentDocId}, #{creatorId}, #{lastEditorId}, #{createdAt})
+    </insert>
+
+
+    <!--新建文档-->
+    <insert id="addDoc" parameterType="com.ai.dto.DocumentDTO"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO document
+            (title, content, type, kb_id, parent_doc_id, creator_id, last_editor_id, version, is_public, view_count, like_count, comment_count, audit_status, deleted_at, created_at, updated_at)
+        VALUES
+            (#{title}, #{content}, #{type}, #{kbId}, #{parentDocId}, #{creatorId}, #{lastEditorId}, #{version}, #{isPublic}, #{viewCount}, #{likeCount}, #{commentCount}, #{auditStatus}, #{deletedAt}, NOW(), NOW())
+    </insert>
+
+    <!--    根据id查询文档    -->
+    <select id="getDocDetailById" resultType="com.ai.dto.DocumentDTO">
+        select * from document where id = #{id}
+    </select>
+
+    <!--    文档浏览数加1     -->
+    <update id="incrementViewCount">
+        update document set view_count = view_count + 1 where id = #{docId}
+    </update>
+
+    <update id="updateById">
+            update document
+            set kb_id = #{kbId}, title = #{title}, content = #{content}, version = #{version}, type = #{type}, parent_doc_id = #{parentDocId}, last_editor_id = #{lastEditorId}, updated_at = NOW(), deleted_at = #{deletedAt}
+            where id = #{id}
+    </update>
+
+
+    <select id="selectRecycleList" resultType="com.ai.dto.DocumentDTO">
+        SELECT id, title, content, type, kb_id, parent_doc_id, creator_id, last_editor_id, created_at, deleted_at, updated_at
+        FROM document
+        WHERE creator_id = #{creatorId}
+          AND deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC
+    </select>
+
+    <select id="selectByIdIncludeDeleted" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            id, title, type, content, kb_id, parent_doc_id,
+            creator_id, last_editor_id, version, is_public,
+            view_count, like_count, comment_count, created_at, updated_at, deleted_at
+        FROM document
+        WHERE id = #{noteId}
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM document WHERE id = #{id}
+    </delete>
+
+    <select id="selectDocByIdForShare" resultType="com.ai.dto.DocumentDTO">
+        SELECT
+            id, title, content, type, creator_id, created_at
+        FROM document
+        WHERE id = #{docId}
+          AND deleted_at IS NULL
+    </select>
+
+
+    <!--    文档喜欢数加1     -->
+    <update id="incrementLikeCount">
+        update document set like_count = like_count + 1 where id = #{docId}
+    </update>
+
+    <!--    文档喜欢数-1     -->
+    <update id="decrementLikeCount">
+        update document set like_count = like_count - 1 where id = #{docId}
+    </update>
+
+</mapper>

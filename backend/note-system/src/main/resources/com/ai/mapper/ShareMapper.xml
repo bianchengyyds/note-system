@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.mapper.ShareMapper">
+    <insert id="insert" parameterType="com.ai.dto.ShareDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO share_link (doc_id, share_key, password, expire_time, permission, creator_id, created_at)
+        VALUES (#{docId}, #{shareKey}, #{password}, #{expireTime}, #{permission}, #{creatorId}, NOW())
+    </insert>
+
+    <select id="countByShareKey" resultType="int">
+        SELECT COUNT(*) FROM share_link WHERE share_key = #{shareKey}
+    </select>
+
+    <select id="selectByShareKey" resultType="com.ai.dto.ShareDTO">
+        SELECT id, doc_id, share_key, password, expire_time, permission, creator_id, created_at
+        FROM share_link
+        WHERE share_key = #{shareKey}
+    </select>
+</mapper>
