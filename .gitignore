@@ -1,0 +1,47 @@
+# 编译输出
+target/
+*.class
+*.jar
+*.war
+*.exe
+
+# IDE 文件
+.idea/
+*.iml
+*.iws
+.vscode/settings.json
+
+# 日志
+*.log
+logs/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Node modules
+**/node_modules/
+**/dist/
+dist-ssr/
+
+# 依赖
+package-lock.json
+
+# 上传文件目录
+backend/project01/upload/
+backend/project01/uploads/
+
+# 环境配置（如果有敏感信息）
+.env.local
+.env.*.local
+
+# 编辑器
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 子目录中的.git（避免嵌套仓库）
+backend/project01/.git
+frontend/vue-note-system/.git

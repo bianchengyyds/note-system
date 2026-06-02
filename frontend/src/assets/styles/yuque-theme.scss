@@ -1,0 +1,16 @@
+// src/assets/styles/yuque-theme.scss
+:root {
+  --yuque-primary: #25b864;        // 语雀绿
+  --yuque-primary-hover: #20a058;
+  --yuque-bg: #f7f9fa;             // 浅灰背景
+  --yuque-border: #e8e8e8;
+  --yuque-text: #262626;
+  --yuque-text-secondary: #8c8c8c;
+  --sidebar-width: 280px;
+  --header-height: 60px;
+}
+
+body {
+  background-color: var(--yuque-bg);
+  color: var(--yuque-text);
+}

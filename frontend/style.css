@@ -1,0 +1,27 @@
+/* ... existing code ... */
+.main-container {
+    height: 100vh;
+    overflow: auto;
+    padding: 20px;
+}
+
+.note-editor, .comment-section {
+    margin-bottom: 20px;
+}
+
+.mind-map {
+    border: 1px solid #dcdcdc;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.comments textarea {
+    width: 100%;
+    height: 100px;
+    margin-bottom: 10px;
+}
+
+.comment-item {
+    margin-top: 10px;
+}
+/* ... existing code ... */
